@@ -31,11 +31,20 @@ pub fn date(text: []const u8) ?Parsed(Date) {
     if (month == 0 or 12 < month) return null;
     remaining = dash(remaining) orelse return null;
 
-    const day_number, remaining = int(u5, remaining) orelse return null;
-    const day = Date.Day.init(day_number) orelse return null;
-    const parsed_date = Date.init(year, @enumFromInt(month), day) orelse return null;
+    const day, remaining = int(u5, remaining) orelse return null;
+    if (day == 0) return null;
+    const parsed_date = Date.init(
+        year,
+        @enumFromInt(month),
+        .init(day),
+    ) orelse return null;
 
     return .{ parsed_date, remaining };
+}
+
+test date {
+    const actual, _ = date("1999-08-01") orelse unreachable;
+    try std.testing.expectEqual(Date.init(1999, .aug, .init(1)), actual);
 }
 
 const std = @import("std");
@@ -44,4 +53,4 @@ const Year = std.time.epoch.Year;
 const YearLeapKind = std.time.epoch.YearLeapKind;
 const Month = std.time.epoch.Month;
 const MonthAndDay = std.time.epoch.MonthAndDay;
-const assert = std.testing.assert;
+const assert = std.debug.assert;

@@ -9,8 +9,9 @@ pub const Day = enum(u5) {
     invalid = 0,
     _,
 
-    pub fn init(day: u5) ?Day {
-        return if (day == 0) null else @enumFromInt(day);
+    pub fn init(day: u5) Day {
+        assert(day != 0);
+        return @enumFromInt(day);
     }
 
     pub fn to_int(self: Day) u5 {
@@ -30,5 +31,5 @@ pub fn init(year: Year, month: Month, day: Day) ?Date {
 
 const Date = @This();
 const std = @import("std");
-const assert = std.testing.assert;
+const assert = std.debug.assert;
 const epoch = std.time.epoch;

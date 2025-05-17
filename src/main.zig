@@ -25,5 +25,9 @@ const Year = std.time.epoch.Year;
 const YearLeapKind = std.time.epoch.YearLeapKind;
 const Month = std.time.epoch.Month;
 const MonthAndDay = std.time.epoch.MonthAndDay;
-const assert = std.testing.assert;
+const assert = std.debug.assert;
 const std = @import("std");
+
+test {
+    _ = parse;
+}
