@@ -7,32 +7,23 @@ pub fn main() !void {
     // var br = std.io.bufferedReader(stdin_file);
     // const stdin = br.reader();
     // var line: [1024]u8 = undefined;
+    const test_string = "1999-08-01";
 
     const stdout_file = std.io.getStdOut().writer();
     var bw = std.io.bufferedWriter(stdout_file);
     const stdout = bw.writer();
 
-    try stdout.print("Run `zig build test` to run the tests.\n", .{});
+    const digits, _ = parse.date(test_string) orelse return error.invalid_date;
+
+    try stdout.print("Digits: {}.\n", .{digits});
 
     try bw.flush(); // Don't forget to flush!
 }
 
-test "simple test" {
-    var list = std.ArrayList(i32).init(std.testing.allocator);
-    defer list.deinit(); // Try commenting this out and see if zig detects the memory leak!
-    try list.append(42);
-    try std.testing.expectEqual(@as(i32, 42), list.pop());
-}
-
-test "fuzz example" {
-    const Context = struct {
-        fn testOne(context: @This(), input: []const u8) anyerror!void {
-            _ = context;
-            // Try passing `--fuzz` to `zig build test` and see if it manages to fail this test case!
-            try std.testing.expect(!std.mem.eql(u8, "canyoufindme", input));
-        }
-    };
-    try std.testing.fuzz(Context{}, Context.testOne, .{});
-}
-
+const parse = @import("parse.zig");
+const Year = std.time.epoch.Year;
+const YearLeapKind = std.time.epoch.YearLeapKind;
+const Month = std.time.epoch.Month;
+const MonthAndDay = std.time.epoch.MonthAndDay;
+const assert = std.testing.assert;
 const std = @import("std");
