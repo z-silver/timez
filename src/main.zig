@@ -1,33 +1,70 @@
-//! By convention, main.zig is where your main function lives in the case that
-//! you are building an executable. If you are making a library, the convention
-//! is to delete this file and start with root.zig instead.
-
 pub fn main() !void {
-    // const stdin_file = std.io.getStdIn().reader();
-    // var br = std.io.bufferedReader(stdin_file);
-    // const stdin = br.reader();
-    // var line: [1024]u8 = undefined;
-    const test_string = "1999-08-01";
+    var arena_state: std.heap.ArenaAllocator = .init(std.heap.page_allocator);
+    const arena = arena_state.allocator();
+
+    const raw_timetable: []const u8 = try std.io.getStdIn().readToEndAlloc(
+        arena,
+        std.math.maxInt(u32),
+    );
 
     const stdout_file = std.io.getStdOut().writer();
     var bw = std.io.bufferedWriter(stdout_file);
     const stdout = bw.writer();
+    _ = stdout; // autofix
 
-    const digits, _ = parse.date(test_string) orelse return error.invalid_date;
+    const stderr = std.io.getStdErr().writer();
 
-    try stdout.print("Digits: {}.\n", .{digits});
+    var current_date: datetime.Date = .now();
+    var line_number: u32 = 1;
+    loop: switch (parse.Action{ .start = raw_timetable }) {
+        .start => |remaining| {
+            @branchHint(.unlikely);
+            continue :loop .init(
+                current_date,
+                remaining,
+            );
+        },
+        .skip => |remaining| {
+            line_number += 1;
+            continue :loop .init(
+                current_date,
+                remaining,
+            );
+        },
+        .date => |parsed_date| {
+            current_date, const remaining = parsed_date;
+            continue :loop .{ .skip = remaining };
+        },
+        .session => |parsed_session| {
+            @branchHint(.likely);
+            const session, const remaining = parsed_session;
+            _ = session; // autofix
+            // TODO
+            continue :loop .{ .skip = remaining };
+        },
+        .end => {
+            @branchHint(.unlikely);
+        },
+        .@"error" => |line| {
+            @branchHint(.cold);
+            try stderr.print(
+                "Error: line {} is invalid\nWhile parsing: {s}\n",
+                .{ line_number, line },
+            );
+            return error.invalid_line;
+        },
+    }
 
-    try bw.flush(); // Don't forget to flush!
+    try bw.flush();
 }
-
-const parse = @import("parse.zig");
-const Year = std.time.epoch.Year;
-const YearLeapKind = std.time.epoch.YearLeapKind;
-const Month = std.time.epoch.Month;
-const MonthAndDay = std.time.epoch.MonthAndDay;
-const assert = std.debug.assert;
-const std = @import("std");
 
 test {
     _ = parse;
 }
+
+const std = @import("std");
+const assert = std.debug.assert;
+
+const datetime = @import("datetime");
+
+const parse = @import("parse.zig");
