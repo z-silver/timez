@@ -2,6 +2,36 @@ pub fn Parsed(comptime T: type) type {
     return struct { T, []const u8 };
 }
 
+pub const Action = union(enum) {
+    skip: []const u8,
+    date: Parsed(datetime.Date),
+    session: Parsed(timetable.Session),
+    end: void,
+    @"error": []const u8,
+
+    pub fn init(
+        current_date: datetime.Date,
+        text: []const u8,
+    ) Action {
+        return if (text.len == 0)
+            .end
+        else if (session(current_date, text)) |parsed_session|
+            .{ .session = parsed_session }
+        else if (date_line(text)) |parsed_date|
+            .{ .date = parsed_date }
+        else if (printable_line(text)) |remaining|
+            .{ .skip = remaining }
+        else
+            .{ .@"error" = line(text).@"0" };
+    }
+
+    test init {
+        try std.testing.expectEqualDeep(Action{ .skip = "abc" }, Action.init(undefined, "\nabc"));
+        try std.testing.expectEqualDeep(Action{ .skip = "abc" }, Action.init(undefined, "whatever I want\nabc"));
+        try std.testing.expectEqualDeep(Action{ .@"error" = "\tunprintable" }, Action.init(undefined, "\tunprintable\nabc"));
+    }
+};
+
 fn digits(text: []const u8) Parsed([]const u8) {
     const char_count = for (text, 0..) |char, position| {
         if (!std.ascii.isDigit(char)) break position;
@@ -201,36 +231,6 @@ fn line(text: []const u8) Parsed([]const u8) {
         remaining,
     };
 }
-
-pub const Action = union(enum) {
-    skip: []const u8,
-    date: Parsed(datetime.Date),
-    session: Parsed(timetable.Session),
-    end: void,
-    @"error": []const u8,
-
-    pub fn init(
-        current_date: datetime.Date,
-        text: []const u8,
-    ) Action {
-        return if (text.len == 0)
-            .end
-        else if (session(current_date, text)) |parsed_session|
-            .{ .session = parsed_session }
-        else if (date_line(text)) |parsed_date|
-            .{ .date = parsed_date }
-        else if (printable_line(text)) |remaining|
-            .{ .skip = remaining }
-        else
-            .{ .@"error" = line(text).@"0" };
-    }
-
-    test init {
-        try std.testing.expectEqualDeep(Action{ .skip = "abc" }, Action.init(undefined, "\nabc"));
-        try std.testing.expectEqualDeep(Action{ .skip = "abc" }, Action.init(undefined, "whatever I want\nabc"));
-        try std.testing.expectEqualDeep(Action{ .@"error" = "\tunprintable" }, Action.init(undefined, "\tunprintable\nabc"));
-    }
-};
 
 comptime {
     std.testing.refAllDecls(@This());
