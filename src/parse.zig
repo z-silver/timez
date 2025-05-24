@@ -141,6 +141,7 @@ test session {
     try std.testing.expectEqualDeep(expected, session(today, "2332-2532 timez -- adding tests"));
     try std.testing.expectEqualDeep(expected, session(today, "2332-2532     timez    --    adding tests  \n"));
     try std.testing.expectEqualDeep(expected, session(today, "2332-2532     timez    --    adding tests  "));
+    try std.testing.expectEqualDeep(null, session(today, " 2332-2532 timez -- adding tests"));
     try std.testing.expectEqualDeep(null, session(today, "2332-2532timez    --    adding tests  \n"));
     try std.testing.expectEqualDeep(null, session(today, "2332-2532 timez--    adding tests  \n"));
     try std.testing.expectEqualDeep(null, session(today, "2332-2532 timez --adding tests  \n"));
