@@ -4,7 +4,12 @@
     .fingerprint = 0x640b56282c8547e3, // Changing this has security and trust implications.
     .minimum_zig_version = "0.14.0",
 
-    .dependencies = .{},
+    .dependencies = .{
+        .datetime = .{
+            .url = "https://github.com/clickingbuttons/datetime/archive/refs/tags/0.14.0.tar.gz",
+            .hash = "datetime-0.14.0-tX11tT20AAA7g6J9LpM9Rneq0D9zMOnA9loaIbcXP0NJ",
+        },
+    },
 
     .paths = .{
         "build.zig",

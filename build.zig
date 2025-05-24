@@ -15,6 +15,13 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    if (b.lazyDependency("datetime", .{
+        .target = target,
+        .optimize = optimize,
+    })) |datetime| {
+        exe_mod.addImport("datetime", datetime.module("datetime"));
+    }
+
     // This creates another `std.Build.Step.Compile`, but this one builds an executable
     // rather than a static library.
     const exe = b.addExecutable(.{
@@ -22,10 +29,12 @@ pub fn build(b: *std.Build) void {
         .root_module = exe_mod,
     });
 
-    // This declares intent for the executable to be installed into the
-    // standard location when the user invokes the "install" step (the default
-    // step when running `zig build`).
-    b.installArtifact(exe);
+    const no_bin = b.option(bool, "no-bin", "skip emitting binary") orelse false;
+    if (no_bin) {
+        b.getInstallStep().dependOn(&exe.step);
+    } else {
+        b.installArtifact(exe);
+    }
 
     // This *creates* a Run step in the build graph, to be executed when another
     // step is evaluated that depends on it. The next line below will establish
