@@ -202,7 +202,6 @@ fn line(text: []const u8) Parsed([]const u8) {
 }
 
 pub const Action = union(enum) {
-    start: []const u8,
     skip: []const u8,
     date: Parsed(datetime.Date),
     session: Parsed(timetable.Session),

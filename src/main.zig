@@ -16,14 +16,7 @@ pub fn main() !void {
 
     var current_date: datetime.Date = .now();
     var line_number: u32 = 1;
-    loop: switch (parse.Action{ .start = raw_timetable }) {
-        .start => |remaining| {
-            @branchHint(.unlikely);
-            continue :loop .init(
-                current_date,
-                remaining,
-            );
-        },
+    loop: switch (parse.Action.init(current_date, raw_timetable)) {
         .skip => |remaining| {
             line_number += 1;
             continue :loop .init(
@@ -32,11 +25,11 @@ pub fn main() !void {
             );
         },
         .date => |parsed_date| {
+            @branchHint(.unlikely);
             current_date, const remaining = parsed_date;
             continue :loop .{ .skip = remaining };
         },
         .session => |parsed_session| {
-            @branchHint(.likely);
             const session, const remaining = parsed_session;
             _ = session; // autofix
             // TODO
