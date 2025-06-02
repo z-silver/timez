@@ -193,10 +193,10 @@ fn endline(text: []const u8) ?[]const u8 {
 
 fn printable_line(text: []const u8) ?[]const u8 {
     return endline(text) orelse
-        if (std.ascii.isPrint(text[0]))
-            @call(.always_tail, printable_line, .{text[1..]})
+        if (std.ascii.isControl(text[0]))
+            null
         else
-            null;
+            @call(.always_tail, printable_line, .{text[1..]});
 }
 
 fn date(text: []const u8) ?Parsed(datetime.Date) {
