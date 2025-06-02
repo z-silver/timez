@@ -7,6 +7,11 @@ pub fn main() !void {
         std.math.maxInt(u32),
     );
 
+    var sessions: std.ArrayListUnmanaged(timetable.Session) = .empty;
+
+    // Heuristic: assume lines are 80 bytes long, and every line is an entry.
+    try sessions.ensureUnusedCapacity(arena, @divFloor(raw_timetable.len, 80));
+
     const stdout_file = std.io.getStdOut().writer();
     var bw = std.io.bufferedWriter(stdout_file);
     const stdout = bw.writer();
@@ -31,8 +36,7 @@ pub fn main() !void {
         },
         .session => |parsed_session| {
             const session, const remaining = parsed_session;
-            _ = session; // autofix
-            // TODO
+            try sessions.append(arena, session);
             continue :loop .{ .skip = remaining };
         },
         .end => {
@@ -61,3 +65,4 @@ const assert = std.debug.assert;
 const datetime = @import("datetime");
 
 const parse = @import("parse.zig");
+const timetable = @import("timetable.zig");
