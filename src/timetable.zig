@@ -37,7 +37,6 @@ pub fn fromString(
 ) Error![]Session {
     var current_date: ?datetime.Date = null;
     var line_number: u32 = 1;
-
     defer out.line_number.* = line_number;
 
     var sessions: std.ArrayListUnmanaged(Session) = .empty;
@@ -70,10 +69,10 @@ pub fn fromString(
         .@"error" => |line| {
             @branchHint(.cold);
             try out.stderr.print(
-            \\Error: line {} is invalid
-            \\While parsing: {s}
-            \\Current date: {?}
-            \\
+                \\Error: line {} is invalid
+                \\While parsing: {s}
+                \\Current date: {?}
+                \\
             ,
                 .{ line_number, line, current_date },
             );
