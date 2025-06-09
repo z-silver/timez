@@ -10,7 +10,7 @@ pub const Action = union(enum) {
     @"error": []const u8,
 
     pub fn init(
-        current_date: datetime.Date,
+        current_date: ?datetime.Date,
         text: []const u8,
     ) Action {
         return if (text.len == 0)
@@ -129,9 +129,11 @@ test timestamp {
 }
 
 fn session(
-    current_date: datetime.Date,
+    maybe_current_date: ?datetime.Date,
     text: []const u8,
 ) ?Parsed(timetable.Session) {
+    const current_date = maybe_current_date orelse return null;
+
     const start_time, var remaining = timestamp(
         current_date,
         text,

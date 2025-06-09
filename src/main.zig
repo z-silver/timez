@@ -7,11 +7,6 @@ pub fn main() !void {
         std.math.maxInt(u32),
     );
 
-    var sessions: std.ArrayListUnmanaged(timetable.Session) = .empty;
-
-    // Heuristic: assume lines are 80 bytes long, and every line is an entry.
-    try sessions.ensureUnusedCapacity(arena, @divFloor(raw_timetable.len, 80));
-
     const stdout_file = std.io.getStdOut().writer();
     var bw = std.io.bufferedWriter(stdout_file);
     const stdout = bw.writer();
@@ -19,44 +14,21 @@ pub fn main() !void {
 
     const stderr = std.io.getStdErr().writer();
 
-    var current_date: datetime.Date = .now();
-    var line_number: u32 = 1;
-    loop: switch (parse.Action.init(current_date, raw_timetable)) {
-        .skip => |remaining| {
-            line_number += 1;
-            continue :loop .init(
-                current_date,
-                remaining,
-            );
-        },
-        .date => |parsed_date| {
-            @branchHint(.unlikely);
-            current_date, const remaining = parsed_date;
-            continue :loop .{ .skip = remaining };
-        },
-        .session => |parsed_session| {
-            const session, const remaining = parsed_session;
-            try sessions.append(arena, session);
-            continue :loop .{ .skip = remaining };
-        },
-        .end => {
-            @branchHint(.unlikely);
-        },
-        .@"error" => |line| {
-            @branchHint(.cold);
-            try stderr.print(
-                "Error: line {} is invalid\nWhile parsing: {s}\n",
-                .{ line_number, line },
-            );
-            return error.invalid_line;
-        },
-    }
+    var line_number: u32 = 0;
+
+    const sessions = try timetable.fromString(
+        arena,
+        raw_timetable,
+        .{ .stderr = stderr, .line_number = &line_number },
+    );
+    _ = sessions; // autofix
 
     try bw.flush();
 }
 
 test {
     _ = parse;
+    _ = timetable;
 }
 
 const std = @import("std");
