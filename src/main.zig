@@ -54,9 +54,10 @@ pub fn main() !void {
         else
             60 - odd_minutes;
 
-        try stdout.print("{string},{string},{rfc3339},{rfc3339},{rfc3339},{rfc3339},{}:{:02}\n", .{
-            session.activity.project,
-            session.activity.description,
+        try print_csv_field(stdout, session.activity.project);
+        try stdout.writeByte(',');
+        try print_csv_field(stdout, session.activity.description);
+        try stdout.print(",{rfc3339},{rfc3339},{rfc3339},{rfc3339},{}:{:02}\n", .{
             session.start_time.date,
             session.start_time.time,
             session.end_time.date,
@@ -74,12 +75,22 @@ fn print_summary_line(
     project: []const u8,
     minutes: i64,
 ) !void {
-    try out.print("{string},{},{}:{:02}\n", .{
-        project,
+    try print_csv_field(out, project);
+    try out.print(",{},{}:{:02}\n", .{
         minutes,
         @divFloor(minutes, 60),
         @as(u6, @intCast(@mod(minutes, 60))),
     });
+}
+
+fn print_csv_field(out: anytype, subject: []const u8) !void {
+    try out.writeByte('"');
+    var iter = std.mem.splitScalar(u8, subject, '"');
+    try out.writeAll(iter.first());
+    while (iter.next()) |after_quote| {
+        try out.print("\"\"{string}", .{after_quote});
+    }
+    try out.writeByte('"');
 }
 
 test {
