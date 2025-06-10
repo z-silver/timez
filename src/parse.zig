@@ -13,21 +13,25 @@ pub const Action = union(enum) {
         current_date: ?datetime.Date,
         text: []const u8,
     ) Action {
-        return if (text.len == 0)
-            .end
-        else if (session(current_date, text)) |parsed_session|
-            .{ .session = parsed_session }
-        else if (date_line(text)) |parsed_date|
-            .{ .date = parsed_date }
-        else if (printable_line(text)) |remaining|
-            .{ .skip = remaining }
-        else
-            .{ .@"error" = line(text).@"0" };
+        if (text.len == 0) return .end;
+        if (endline(text)) |remaining| return .{ .skip = remaining };
+
+        if (date_line(text)) |parsed_date| return .{ .date = parsed_date };
+
+        if (current_date) |existing_date| {
+            if (session(existing_date, text)) |parsed_session| {
+                return .{ .session = parsed_session };
+            }
+            if (printable_line(text)) |remaining| {
+                return .{ .skip = remaining };
+            }
+        }
+        return .{ .@"error" = line(text).@"0" };
     }
 
     test init {
         try std.testing.expectEqualDeep(Action{ .skip = "abc" }, Action.init(undefined, "\nabc"));
-        try std.testing.expectEqualDeep(Action{ .skip = "abc" }, Action.init(undefined, "whatever I want\nabc"));
+        try std.testing.expectEqualDeep(Action{ .@"error" = "whatever I want" }, Action.init(undefined, "whatever I want\nabc"));
         try std.testing.expectEqualDeep(Action{ .@"error" = "\tunprintable" }, Action.init(undefined, "\tunprintable\nabc"));
     }
 };
@@ -129,11 +133,9 @@ test timestamp {
 }
 
 fn session(
-    maybe_current_date: ?datetime.Date,
+    current_date: datetime.Date,
     text: []const u8,
 ) ?Parsed(timetable.Session) {
-    const current_date = maybe_current_date orelse return null;
-
     const start_time, var remaining = timestamp(
         current_date,
         text,
