@@ -7,39 +7,49 @@ pub const Session = struct {
     start_time: datetime.DateTime,
     end_time: datetime.DateTime,
     activity: Activity,
+    duration: Minutes,
 
     pub fn init(
         start_time: datetime.DateTime,
         end_time: datetime.DateTime,
         description: Activity,
     ) Session {
+        const start = start_time.toEpoch();
+        const end = end_time.toEpoch();
+
+        const duration = @divFloor(
+            end - start,
+            datetime.Time.subseconds_per_min,
+        );
+
         return .{
             .start_time = start_time,
             .end_time = end_time,
             .activity = description,
+            .duration = .fromInt(duration),
         };
     }
 };
 
-pub const Error = error{
+pub const ParseError = error{
     invalid_line,
 } || std.mem.Allocator.Error || std.fs.File.Writer.Error;
 
-pub const Out = struct {
-    stderr: std.fs.File.Writer,
-    line_number: *u32,
-};
+pub const SessionList = std.ArrayListUnmanaged(Session);
 
 pub fn fromString(
     gpa: std.mem.Allocator,
     raw_timetable: []const u8,
-    out: Out,
-) Error![]Session {
+    out: struct {
+        stderr: std.fs.File.Writer,
+        line_number: *u32,
+    },
+) ParseError!SessionList {
     var current_date: ?datetime.Date = null;
     var line_number: u32 = 1;
     defer out.line_number.* = line_number;
 
-    var sessions: std.ArrayListUnmanaged(Session) = .empty;
+    var sessions: SessionList = .empty;
     errdefer sessions.deinit(gpa);
 
     // Heuristic: assume lines are 80 bytes long, and every line is an entry.
@@ -80,7 +90,41 @@ pub fn fromString(
         },
     }
 
-    return try sessions.toOwnedSlice(gpa);
+    return sessions;
+}
+
+pub const Minutes = enum(i64) {
+    _,
+    pub fn fromInt(int: i64) Minutes {
+        return @enumFromInt(int);
+    }
+    pub fn toInt(self: Minutes) i64 {
+        return @intFromEnum(self);
+    }
+};
+
+pub const Summary = std.StringHashMapUnmanaged(Minutes);
+
+pub fn summary(
+    gpa: std.mem.Allocator,
+    sessions: []const Session,
+) std.mem.Allocator.Error!Summary {
+    var subtotals: Summary = .empty;
+    errdefer subtotals.deinit(gpa);
+
+    // Heuristic: I don't usually work on a lot of different things.
+    try subtotals.ensureUnusedCapacity(gpa, 12);
+
+    for (sessions) |session| {
+        const key = session.activity.project;
+        const previous_total: Minutes = subtotals.get(key) orelse .fromInt(0);
+
+        try subtotals.put(gpa, key, .fromInt(
+            previous_total.toInt() + session.duration.toInt(),
+        ));
+    }
+
+    return subtotals;
 }
 
 comptime {
