@@ -2,7 +2,9 @@ const std = @import("std");
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
-    const optimize = b.standardOptimizeOption(.{});
+    const optimize = b.standardOptimizeOption(.{
+        .preferred_optimize_mode = .ReleaseSmall,
+    });
 
     // We will also create a module for our other entry point, 'main.zig'.
     const exe_mod = b.createModule(.{
