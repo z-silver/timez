@@ -4,6 +4,21 @@ pub fn main() !void {
 
     const arena = arena_state.allocator();
 
+    const args = try std.process.argsAlloc(arena);
+
+    const stderr = std.io.getStdErr().writer();
+
+    if (2 < args.len) {
+        try stderr.print("Args: {string}\n", .{args});
+        return error.too_many_arguments;
+    }
+
+    const date_format: Date_Format =
+        if (args.len == 2 and std.mem.eql(u8, args[1], "--dmy"))
+            .dmy
+        else
+            .international;
+
     const raw_timetable: []const u8 = try std.io.getStdIn().readToEndAlloc(
         arena,
         std.math.maxInt(u32),
@@ -12,8 +27,6 @@ pub fn main() !void {
     const stdout_file = std.io.getStdOut().writer();
     var bw = std.io.bufferedWriter(stdout_file);
     const stdout = bw.writer();
-
-    const stderr = std.io.getStdErr().writer();
 
     var line_number: u32 = 0;
 
@@ -57,10 +70,13 @@ pub fn main() !void {
         try print_csv_field(stdout, session.activity.project);
         try stdout.writeByte(',');
         try print_csv_field(stdout, session.activity.description);
-        try stdout.print(",{rfc3339},{rfc3339},{rfc3339},{rfc3339},{}:{:02}\n", .{
-            session.start_time.date,
+        try stdout.writeByte(',');
+        try print_date(stdout, date_format, session.start_time.date);
+        try stdout.print(",{rfc3339},", .{
             session.start_time.time,
-            session.end_time.date,
+        });
+        try print_date(stdout, date_format, session.end_time.date);
+        try stdout.print(",{rfc3339},{}:{:02}\n", .{
             session.end_time.time,
             hours,
             minutes,
@@ -68,6 +84,15 @@ pub fn main() !void {
     }
 
     try bw.flush();
+}
+
+const Date_Format = enum { international, dmy };
+
+fn print_date(out: anytype, mode: Date_Format, date: datetime.Date) !void {
+    try switch (mode) {
+        .international => out.print("{rfc3339}", .{date}),
+        .dmy => out.print("{:02}/{:02}/{}", .{ date.day, date.month.numeric(), date.year }),
+    };
 }
 
 fn print_summary_line(
