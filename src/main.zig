@@ -124,9 +124,6 @@ test {
 }
 
 const std = @import("std");
-const assert = std.debug.assert;
-
 const datetime = @import("datetime");
-
 const parse = @import("parse.zig");
 const timetable = @import("timetable.zig");
