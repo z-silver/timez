@@ -6,11 +6,17 @@ pub fn main() !void {
 
     const args = try std.process.argsAlloc(arena);
 
-    var stderr_fw = std.fs.File.stderr().writer(&.{});
+    var stderr_buf: [512]u8 = undefined;
+    var stderr_fw = std.fs.File.stderr().writer(&stderr_buf);
     const stderr = &stderr_fw.interface;
 
     if (2 < args.len) {
-        try stderr.print("Args: {any}\n", .{args});
+        try stderr.writeAll("Args:");
+        for (args[1..]) |arg| {
+            try stderr.print(" {s}", .{arg});
+        }
+        try stderr.writeByte('\n');
+        try stderr.flush();
         return error.too_many_arguments;
     }
 

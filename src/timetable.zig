@@ -86,6 +86,7 @@ pub fn fromString(
             ,
                 .{ line_number, line, current_date },
             );
+            try out.stderr.flush();
             return error.invalid_line;
         },
     }
