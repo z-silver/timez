@@ -33,7 +33,7 @@ pub const Session = struct {
 
 pub const ParseError = error{
     invalid_line,
-} || std.mem.Allocator.Error || std.fs.File.Writer.Error;
+} || std.mem.Allocator.Error || std.Io.Writer.Error;
 
 pub const SessionList = std.ArrayListUnmanaged(Session);
 
@@ -41,7 +41,7 @@ pub fn fromString(
     gpa: std.mem.Allocator,
     raw_timetable: []const u8,
     out: struct {
-        stderr: std.fs.File.Writer,
+        stderr: *std.Io.Writer,
         line_number: *u32,
     },
 ) ParseError!SessionList {
@@ -81,7 +81,7 @@ pub fn fromString(
             try out.stderr.print(
                 \\Error: line {} is invalid
                 \\While parsing: {s}
-                \\Current date: {?}
+                \\Current date: {?f}
                 \\
             ,
                 .{ line_number, line, current_date },

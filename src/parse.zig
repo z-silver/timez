@@ -30,9 +30,9 @@ pub const Action = union(enum) {
     }
 
     test init {
-        try std.testing.expectEqualDeep(Action{ .skip = "abc" }, Action.init(undefined, "\nabc"));
-        try std.testing.expectEqualDeep(Action{ .@"error" = "whatever I want" }, Action.init(undefined, "whatever I want\nabc"));
-        try std.testing.expectEqualDeep(Action{ .@"error" = "\tunprintable" }, Action.init(undefined, "\tunprintable\nabc"));
+        try std.testing.expectEqualDeep(Action{ .skip = "abc" }, Action.init(null, "\nabc"));
+        try std.testing.expectEqualDeep(Action{ .@"error" = "whatever I want" }, Action.init(null, "whatever I want\nabc"));
+        try std.testing.expectEqualDeep(Action{ .@"error" = "\tunprintable" }, Action.init(null, "\tunprintable\nabc"));
     }
 };
 
@@ -196,11 +196,12 @@ fn endline(text: []const u8) ?[]const u8 {
 }
 
 fn printable_line(text: []const u8) ?[]const u8 {
-    return endline(text) orelse
-        if (std.ascii.isControl(text[0]))
-            null
-        else
-            @call(.always_tail, printable_line, .{text[1..]});
+    var subject = text;
+    while (true) {
+        if (endline(subject)) |remaining| return remaining;
+        if (std.ascii.isControl(subject[0])) return null;
+        subject = subject[1..];
+    }
 }
 
 fn date(text: []const u8) ?Parsed(datetime.Date) {

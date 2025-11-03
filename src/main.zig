@@ -6,10 +6,11 @@ pub fn main() !void {
 
     const args = try std.process.argsAlloc(arena);
 
-    const stderr = std.io.getStdErr().writer();
+    var stderr_fw = std.fs.File.stderr().writer(&.{});
+    const stderr = &stderr_fw.interface;
 
     if (2 < args.len) {
-        try stderr.print("Args: {string}\n", .{args});
+        try stderr.print("Args: {any}\n", .{args});
         return error.too_many_arguments;
     }
 
@@ -19,14 +20,16 @@ pub fn main() !void {
         else
             .international;
 
-    const raw_timetable: []const u8 = try std.io.getStdIn().readToEndAlloc(
-        arena,
-        std.math.maxInt(u32),
-    );
+    var stdin_buf: [4096]u8 = undefined;
+    var stdin_fr = std.fs.File.stdin().reader(&stdin_buf);
+    const stdin = &stdin_fr.interface;
 
-    const stdout_file = std.io.getStdOut().writer();
-    var bw = std.io.bufferedWriter(stdout_file);
-    const stdout = bw.writer();
+    const raw_timetable: []const u8 =
+        try stdin.allocRemaining(arena, .unlimited);
+
+    var stdout_buf: [1024]u8 = undefined;
+    var stdout_fw = std.fs.File.stdout().writer(&stdout_buf);
+    const stdout = &stdout_fw.interface;
 
     var line_number: u32 = 0;
 
@@ -72,31 +75,31 @@ pub fn main() !void {
         try print_csv_field(stdout, session.activity.description);
         try stdout.writeByte(',');
         try print_date(stdout, date_format, session.start_time.date);
-        try stdout.print(",{rfc3339},", .{
+        try stdout.print(",{f},", .{
             session.start_time.time,
         });
         try print_date(stdout, date_format, session.end_time.date);
-        try stdout.print(",{rfc3339},{}:{:02}\n", .{
+        try stdout.print(",{f},{}:{:02}\n", .{
             session.end_time.time,
             hours,
             minutes,
         });
     }
 
-    try bw.flush();
+    try stdout.flush();
 }
 
 const Date_Format = enum { international, dmy };
 
-fn print_date(out: anytype, mode: Date_Format, date: datetime.Date) !void {
+fn print_date(out: *std.Io.Writer, mode: Date_Format, date: datetime.Date) !void {
     try switch (mode) {
-        .international => out.print("{rfc3339}", .{date}),
+        .international => out.print("{f}", .{date}),
         .dmy => out.print("{:02}/{:02}/{}", .{ date.day, date.month.numeric(), date.year }),
     };
 }
 
 fn print_summary_line(
-    out: anytype,
+    out: *std.Io.Writer,
     project: []const u8,
     minutes: i64,
 ) !void {
@@ -108,12 +111,12 @@ fn print_summary_line(
     });
 }
 
-fn print_csv_field(out: anytype, subject: []const u8) !void {
+fn print_csv_field(out: *std.Io.Writer, subject: []const u8) !void {
     try out.writeByte('"');
     var iter = std.mem.splitScalar(u8, subject, '"');
     try out.writeAll(iter.first());
     while (iter.next()) |after_quote| {
-        try out.print("\"\"{string}", .{after_quote});
+        try out.print("\"\"{s}", .{after_quote});
     }
     try out.writeByte('"');
 }
