@@ -55,11 +55,11 @@ pub fn main() !void {
         var summary_iter = summary.iterator();
         while (summary_iter.next()) |entry| {
             const project = entry.key_ptr.*;
-            const minutes = entry.value_ptr.toInt();
+            const minutes = entry.value_ptr.*;
             try print_summary_line(stdout, project, minutes);
-            total += minutes;
+            total += minutes.toInt();
         }
-        try print_summary_line(stdout, "total", total);
+        try print_summary_line(stdout, "total", .fromInt(total));
     }
     try stdout.writeByte('\n');
 
@@ -67,14 +67,7 @@ pub fn main() !void {
         "project,description,start date,start time,end date,end time,duration\n",
     );
     for (sessions.items) |session| {
-        const duration = session.duration.toInt();
-        const odd_hours = @divFloor(duration, 60);
-        const odd_minutes: u6 = @intCast(@mod(duration, 60));
-        const hours = odd_hours + @intFromBool(odd_hours < 0 and 0 != odd_minutes);
-        const minutes = if (0 <= odd_hours or odd_minutes == 0)
-            odd_minutes
-        else
-            60 - odd_minutes;
+        const hours, const minutes = session.duration.toHoursAndMinutes();
 
         try print_csv_field(stdout, session.activity.project);
         try stdout.writeByte(',');
@@ -107,13 +100,14 @@ fn print_date(out: *std.Io.Writer, mode: Date_Format, date: datetime.Date) !void
 fn print_summary_line(
     out: *std.Io.Writer,
     project: []const u8,
-    minutes: i64,
+    duration: timetable.Minutes,
 ) !void {
     try print_csv_field(out, project);
+    const hours, const minutes = duration.toHoursAndMinutes();
     try out.print(",{},{}:{:02}\n", .{
+        duration.toInt(),
+        hours,
         minutes,
-        @divFloor(minutes, 60),
-        @as(u6, @intCast(@mod(minutes, 60))),
     });
 }
 

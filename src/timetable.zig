@@ -102,6 +102,18 @@ pub const Minutes = enum(i64) {
     pub fn toInt(self: Minutes) i64 {
         return @intFromEnum(self);
     }
+    pub fn toHoursAndMinutes(self: Minutes) struct { i64, u6 } {
+        const duration = self.toInt();
+        const odd_hours = @divFloor(duration, 60);
+        const odd_minutes: u6 = @intCast(@mod(duration, 60));
+        return .{
+            odd_hours + @intFromBool(odd_hours < 0 and 0 != odd_minutes),
+            if (0 <= odd_hours or odd_minutes == 0)
+                odd_minutes
+            else
+                60 - odd_minutes,
+        };
+    }
 };
 
 pub const Summary = std.StringHashMapUnmanaged(Minutes);
