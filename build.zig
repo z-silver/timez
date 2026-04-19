@@ -31,12 +31,7 @@ pub fn build(b: *std.Build) void {
         .root_module = exe_mod,
     });
 
-    const no_bin = b.option(bool, "no-bin", "skip emitting binary") orelse false;
-    if (no_bin) {
-        b.getInstallStep().dependOn(&exe.step);
-    } else {
-        b.installArtifact(exe);
-    }
+    b.installArtifact(exe);
 
     // This *creates* a Run step in the build graph, to be executed when another
     // step is evaluated that depends on it. The next line below will establish

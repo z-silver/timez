@@ -1,13 +1,11 @@
-pub fn main() !void {
-    var arena_state: std.heap.ArenaAllocator = .init(std.heap.page_allocator);
-    defer arena_state.deinit();
+pub fn main(init: std.process.Init) !void {
+    const arena = init.arena.allocator();
+    const io = init.io;
 
-    const arena = arena_state.allocator();
-
-    const args = try std.process.argsAlloc(arena);
+    const args = try init.minimal.args.toSlice(arena);
 
     var stderr_buf: [512]u8 = undefined;
-    var stderr_fw = std.fs.File.stderr().writer(&stderr_buf);
+    var stderr_fw = std.Io.File.stderr().writer(io, &stderr_buf);
     const stderr = &stderr_fw.interface;
 
     if (2 < args.len) {
@@ -27,14 +25,14 @@ pub fn main() !void {
             .international;
 
     var stdin_buf: [4096]u8 = undefined;
-    var stdin_fr = std.fs.File.stdin().reader(&stdin_buf);
+    var stdin_fr = std.Io.File.stdin().reader(io, &stdin_buf);
     const stdin = &stdin_fr.interface;
 
     const raw_timetable: []const u8 =
         try stdin.allocRemaining(arena, .unlimited);
 
     var stdout_buf: [1024]u8 = undefined;
-    var stdout_fw = std.fs.File.stdout().writer(&stdout_buf);
+    var stdout_fw = std.Io.File.stdout().writer(io, &stdout_buf);
     const stdout = &stdout_fw.interface;
 
     var line_number: u32 = 0;
