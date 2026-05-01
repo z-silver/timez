@@ -65,7 +65,7 @@ pub fn main(init: std.process.Init) !void {
         "project,description,start date,start time,end date,end time,duration\n",
     );
     for (sessions.items) |session| {
-        const hours, const minutes = session.duration.toHoursAndMinutes();
+        const sign, const hours, const minutes = session.duration.toHoursAndMinutes();
 
         try print_csv_field(stdout, session.activity.project);
         try stdout.writeByte(',');
@@ -76,8 +76,9 @@ pub fn main(init: std.process.Init) !void {
             session.start_time.time,
         });
         try print_date(stdout, date_format, session.end_time.date);
-        try stdout.print(",{f},{}:{:02}\n", .{
+        try stdout.print(",{f},{s}{}:{:02}\n", .{
             session.end_time.time,
+            sign,
             hours,
             minutes,
         });
@@ -101,9 +102,10 @@ fn print_summary_line(
     duration: timetable.Minutes,
 ) !void {
     try print_csv_field(out, project);
-    const hours, const minutes = duration.toHoursAndMinutes();
-    try out.print(",{},{}:{:02}\n", .{
+    const sign, const hours, const minutes = duration.toHoursAndMinutes();
+    try out.print(",{},{s}{}:{:02}\n", .{
         duration.toInt(),
+        sign,
         hours,
         minutes,
     });
