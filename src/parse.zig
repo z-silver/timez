@@ -7,6 +7,7 @@ pub const Action = union(enum) {
     date: Parsed(datetime.Date),
     session: Parsed(timetable.Session),
     end: void,
+    missing_date: []const u8,
     @"error": []const u8,
 
     pub fn init(
@@ -14,17 +15,16 @@ pub const Action = union(enum) {
         text: []const u8,
     ) Action {
         if (text.len == 0) return .end;
-        if (endline(text)) |remaining| return .{ .skip = remaining };
-
+        if (comment(text)) |remaining| return .{ .skip = remaining };
         if (date_line(text)) |parsed_date| return .{ .date = parsed_date };
 
         if (current_date) |existing_date| {
             if (session(existing_date, text)) |parsed_session| {
                 return .{ .session = parsed_session };
             }
-            if (printable_line(text)) |remaining| {
-                return .{ .skip = remaining };
-            }
+        } else if (session_line(text)) |result| {
+            const current_line, _ = result;
+            return .{ .missing_date = current_line };
         }
         return .{ .@"error" = line(text).@"0" };
     }
@@ -89,21 +89,23 @@ test activity {
     );
 }
 
-fn timestamp(
-    current_date: datetime.Date,
-    text: []const u8,
-) ?Parsed(datetime.DateTime) {
+fn duration(text: []const u8) ?Parsed(datetime.DateTime.Duration) {
     const hour_text, var remaining = any(2, text) orelse return null;
     const hour = uint(u5, hour_text) orelse return null;
 
     const minute_text, remaining = any(2, remaining) orelse return null;
     const minute = uint(u6, minute_text) orelse return null;
+    return .{ .{ .hours = hour, .minutes = minute }, remaining };
+}
+
+fn timestamp(
+    current_date: datetime.Date,
+    text: []const u8,
+) ?Parsed(datetime.DateTime) {
+    const session_time, const remaining = duration(text) orelse return null;
 
     const at_midnight: datetime.DateTime = .{ .date = current_date };
-    return .{
-        at_midnight.add(.{ .hours = hour, .minutes = minute }),
-        remaining,
-    };
+    return .{ at_midnight.add(session_time), remaining };
 }
 
 test timestamp {
@@ -130,6 +132,11 @@ test timestamp {
         }, "" },
         timestamp(today, "2532"),
     );
+}
+
+fn session_line(text: []const u8) ?Parsed([]const u8) {
+    _, _ = duration(text) orelse return null;
+    return line(text);
 }
 
 fn session(
@@ -186,6 +193,16 @@ fn literal(expected: []const u8, text: []const u8) ?[]const u8 {
         text[expected.len..]
     else
         null;
+}
+
+fn comment(text: []const u8) ?[]const u8 {
+    return if (text.len == 0)
+        null
+    else
+        endline(text) orelse switch (text[0]) {
+            ' ', '#', ';' => printable_line(text),
+            else => null,
+        };
 }
 
 fn endline(text: []const u8) ?[]const u8 {

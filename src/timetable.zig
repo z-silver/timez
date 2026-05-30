@@ -33,6 +33,7 @@ pub const Session = struct {
 
 pub const ParseError = error{
     invalid_line,
+    missing_date,
 } || std.mem.Allocator.Error || std.Io.Writer.Error;
 
 pub const SessionList = std.ArrayListUnmanaged(Session);
@@ -76,6 +77,20 @@ pub fn fromString(
         .end => {
             @branchHint(.unlikely);
         },
+        .missing_date => |line| {
+            @branchHint(.cold);
+            assert(current_date == null);
+            try out.stderr.print(
+                \\Error: line {} looks like a session, but we haven't seen a date yet
+                \\While parsing: {s}
+                \\
+                \\
+            ,
+                .{ line_number, line },
+            );
+            try out.stderr.flush();
+            return error.missing_date;
+        },
         .@"error" => |line| {
             @branchHint(.cold);
             try out.stderr.print(
@@ -83,9 +98,17 @@ pub fn fromString(
                 \\While parsing: {s}
                 \\Current date: {?f}
                 \\
+                \\
             ,
                 .{ line_number, line, current_date },
             );
+            if (std.mem.containsAtLeast(u8, line, 1, "\t")) {
+                try out.stderr.print(
+                    \\Hint: tab characters are forbidden.
+                    \\
+                    \\
+                , .{});
+            }
             try out.stderr.flush();
             return error.invalid_line;
         },
@@ -151,5 +174,6 @@ test {
 }
 
 const std = @import("std");
+const assert = std.debug.assert;
 const datetime = @import("datetime");
 const parse = @import("parse.zig");
