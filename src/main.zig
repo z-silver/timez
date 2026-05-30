@@ -8,7 +8,7 @@ pub fn main(init: std.process.Init) !void {
     var stderr_fw = std.Io.File.stderr().writer(io, &stderr_buf);
     const stderr = &stderr_fw.interface;
 
-    if (2 < args.len) {
+    if (1 < args.len) {
         try stderr.writeAll("Args:");
         for (args[1..]) |arg| {
             try stderr.print(" {s}", .{arg});
@@ -17,12 +17,6 @@ pub fn main(init: std.process.Init) !void {
         try stderr.flush();
         return error.too_many_arguments;
     }
-
-    const date_format: Date_Format =
-        if (args.len == 2 and std.mem.eql(u8, args[1], "--dmy"))
-            .dmy
-        else
-            .international;
 
     var stdin_buf: [4096]u8 = undefined;
     var stdin_fr = std.Io.File.stdin().reader(io, &stdin_buf);
@@ -70,13 +64,10 @@ pub fn main(init: std.process.Init) !void {
         try print_csv_field(stdout, session.activity.project);
         try stdout.writeByte(',');
         try print_csv_field(stdout, session.activity.description);
-        try stdout.writeByte(',');
-        try print_date(stdout, date_format, session.start_time.date);
-        try stdout.print(",{f},", .{
+        try stdout.print(",{f},{f},{f},{f},{s}{}:{:02}\n", .{
+            session.start_time.date,
             session.start_time.time,
-        });
-        try print_date(stdout, date_format, session.end_time.date);
-        try stdout.print(",{f},{s}{}:{:02}\n", .{
+            session.end_time.date,
             session.end_time.time,
             sign,
             hours,
@@ -85,15 +76,6 @@ pub fn main(init: std.process.Init) !void {
     }
 
     try stdout.flush();
-}
-
-const Date_Format = enum { international, dmy };
-
-fn print_date(out: *std.Io.Writer, mode: Date_Format, date: datetime.Date) !void {
-    try switch (mode) {
-        .international => out.print("{f}", .{date}),
-        .dmy => out.print("{:02}/{:02}/{}", .{ date.day, date.month.numeric(), date.year }),
-    };
 }
 
 fn print_summary_line(
