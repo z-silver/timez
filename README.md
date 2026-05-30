@@ -1,6 +1,6 @@
 # Timez
 
-`timez` is a work time reporting tool. It reads in a time log file and exports a CSV.
+`timez` is a work time reporting tool. It reads in a time log file from stdin and exports a CSV to stdout.
 
 ## Building
 
