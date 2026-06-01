@@ -6,7 +6,7 @@
 
     .dependencies = .{
         .datetime = .{
-            .url = "https://github.com/z-silver/datetime/archive/1c8b1c17182db35f69324acfea94f6ed8143bbbe.zip",
+            .url = "https://github.com/z-silver/datetime/archive/1c8b1c17182db35f69324acfea94f6ed8143bbbe.tar.gz",
             .hash = "datetime-0.15.1-tX11tXi0AACpAzeYARIBFJdvb38kw0CWOP7sdn6zrzPy",
         },
     },
