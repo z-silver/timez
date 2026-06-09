@@ -10,6 +10,8 @@ zig build
 
 You can use the `--release` option for an optimized executable.
 
+`timez` is currently written against Zig version `0.16.0`.
+
 ## Usage
 
 The file format expected by `timez` is very minimal: it uses plain text and is line-oriented.
